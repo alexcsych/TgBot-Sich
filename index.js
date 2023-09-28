@@ -6,37 +6,53 @@ const bot = new Telegraf(BOT_TOKEN)
 
 const api = 'https://russianwarship.rip/api/v2/statistics/latest'
 
-let dataFromServer = {}
-const getDataFromServer = forceFetch => {
+let dataFromServer = []
+let kindOfStatistic = 'stats'
+
+function getDataFromServer (forceFetch) {
   if (forceFetch) {
-    console.log('Go to server')
+    console.log('Get data from Server')
     return fetch(api)
       .then(response => response.json())
       .then(data => {
-        dataFromServer = { ...data.data.increase }
+        dataFromServer = data.data
       })
   }
-  console.log('Return')
 }
 
 bot.start(ctx => {
-  ctx.replyWithHTML('Welcome to my bot')
+  ctx.replyWithHTML('Hello there', {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: 'Resource', url: 'https://russianwarship.rip' }],
+        [{ text: 'Статистика за день', callback_data: 'getDataByDay' }],
+        [{ text: 'Вся статистика', callback_data: 'getAllData' }]
+      ]
+    }
+  })
+})
+
+bot.action('getDataByDay', ctx => {
+  kindOfStatistic = 'increase'
+  ctx.reply('Статистика за день')
+})
+
+bot.action('getAllData', ctx => {
+  kindOfStatistic = 'stats'
+  ctx.reply('Вся статистика')
 })
 
 bot.hears(/^Hi$/i, ctx => {
-  ctx.reply('Hi to you too')
+  ctx.reply('Hi')
 })
 
 bot.hears(/[A-Z]+/i, async ctx => {
   const key = ctx.message.text
-  let forceFetch = Object.keys(dataFromServer).length === 0
-  console.log('forceFetch :>> ', forceFetch)
-  await getDataFromServer(forceFetch)
-  console.log(dataFromServer)
+  await getDataFromServer(dataFromServer.length == 0)
   ctx.reply(
-    dataFromServer[key] === undefined
+    dataFromServer[kindOfStatistic][key] === undefined
       ? 'Incorrect data'
-      : `Amount of anihilated ${key}: ${dataFromServer[key]}`
+      : `Amount of anihilated ${key}: ${dataFromServer[kindOfStatistic][key]}`
   )
 })
 
